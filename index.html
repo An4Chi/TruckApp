@@ -71,7 +71,9 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient("https://xnhvmzwnmnymchbfnkge.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM");
+    const sb = supabase.createClient("https://xnhvmzwnmnymchbfnkge.supabase.co", 
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM");
+
     let currentUser = "";
     let currentPin = "";
 
@@ -134,7 +136,7 @@
         fuel_price: parseFloat(document.getElementById("fuelPrice").value) || 0,
         other_expenses: parseFloat(document.getElementById("expenses").value) || 0
       };
-      const { data, error } = await supabase.from("loads").insert([entry]);
+      const { data, error } = await sb.from("loads").insert([entry]);
       if (error) {
         alert("Failed to save load.");
       } else {
@@ -144,7 +146,7 @@
     }
 
     async function loadLoads() {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from("loads")
         .select("*")
         .eq("username", currentUser)
