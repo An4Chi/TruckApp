@@ -69,14 +69,14 @@
     <ul id="toSuggestions" class="suggestions hidden"></ul>
 
     <button onclick="calculateDistance()">Calculate Distance</button>
-    <input id="miles" placeholder="Miles" readonly />
+    <input id="miles" placeholder="Miles" value="0" readonly />
 
-    <input id="rate" placeholder="Load Rate ($)" />
+    <input id="rate" placeholder="Load Rate ($)" value="0" />
     <div style="display: flex; gap: 10px;">
-      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" style="flex: 1;" />
+      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" value="0" style="flex: 1;" />
       <button onclick="updateDieselPrice()" style="flex: 1;">Update Diesel Price</button>
     </div>
-    <input id="expenses" placeholder="Other Expenses ($)" />
+    <input id="expenses" placeholder="Other Expenses ($)" value="0" />
     <button onclick="calculate()">Calculate Profit</button>
     <div id="result" class="hidden"></div>
     <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
@@ -117,7 +117,7 @@
       list.classList.remove("hidden");
       if (query.length < 2) return;
 
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&q=${encodeURIComponent(query)}`);
       const data = await res.json();
       data.forEach(item => {
         const li = document.createElement("li");
@@ -147,10 +147,10 @@
     }
 
     function calculate() {
-      const rate = parseFloat(document.getElementById("rate").value);
-      const miles = parseFloat(document.getElementById("miles").value);
-      const fuelPrice = parseFloat(document.getElementById("fuelPrice").value);
-      const expenses = parseFloat(document.getElementById("expenses").value);
+      const rate = parseFloat(document.getElementById("rate").value) || 0;
+      const miles = parseFloat(document.getElementById("miles").value) || 0;
+      const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
+      const expenses = parseFloat(document.getElementById("expenses").value) || 0;
       const mpg = 6.2;
       const dispatcher = rate * 0.10;
       const fuel = (miles / mpg) * fuelPrice;
