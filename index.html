@@ -3,8 +3,167 @@
 <head>
   <meta charset="UTF-8" />
   <title>Truck Net Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      background-color: #2c2c2c;
+      color: #ffffff;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #444;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
 </head>
 <body>
-  <p>Restored placeholder. Full version with Supabase integration was in previous step.</p>
+  <h1>Truck Net Calculator</h1>
+
+  <div id="loginSection">
+    <input id="username" placeholder="Name" />
+    <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="appSection" class="hidden">
+    <h2 id="welcome"></h2>
+
+    <input id="fromInput" placeholder="From" />
+    <input id="toInput" placeholder="To" />
+    <button onclick="calculateDistance()">Calculate Distance</button>
+    <input id="miles" placeholder="Miles" readonly />
+
+    <input id="rate" placeholder="Load Rate ($)" />
+    <div style="display: flex; gap: 10px;">
+      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
+      <button onclick="updateDieselPrice()">Update Diesel Price</button>
+    </div>
+    <input id="expenses" placeholder="Other Expenses ($)" />
+    <button onclick="calculate()">Calculate Profit</button>
+    <div id="result" class="hidden"></div>
+    <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
+    <button onclick="exportCSV()">Export to CSV</button>
+
+    <div id="history" class="hidden">
+      <h3>Saved Loads:</h3>
+      <ul id="loadList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const supabase = supabase.createClient("https://xnhvmzwnmnymchbfnkge.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM");
+    let currentUser = "";
+    let currentPin = "";
+
+    function login() {
+      const username = document.getElementById("username").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+      if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
+      currentUser = username;
+      currentPin = pin;
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("appSection").classList.remove("hidden");
+      document.getElementById("welcome").innerText = "Welcome, " + username + "!";
+      loadLoads();
+    }
+
+    function updateDieselPrice() {
+      fetch("https://api.eia.gov/series/?api_key=DEMO_KEY&series_id=PET.EMD_EPD2D_PTE_NUS_DPG.W")
+        .then(res => res.json())
+        .then(data => {
+          const latest = data.series[0].data[0][1];
+          document.getElementById("fuelPrice").value = latest;
+        })
+        .catch(() => {
+          alert("Failed to fetch diesel price.");
+        });
+    }
+
+    function calculateDistance() {
+      document.getElementById("miles").value = "0"; // заглушка
+    }
+
+    function calculate() {
+      const rate = parseFloat(document.getElementById("rate").value) || 0;
+      const miles = parseFloat(document.getElementById("miles").value) || 0;
+      const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
+      const expenses = parseFloat(document.getElementById("expenses").value) || 0;
+      const mpg = 6.2;
+      const dispatcher = rate * 0.10;
+      const fuel = (miles / mpg) * fuelPrice;
+      const total = dispatcher + fuel + expenses;
+      const profit = rate - total;
+
+      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("result").innerHTML = `
+        <p>Dispatcher: $${dispatcher.toFixed(2)}</p>
+        <p>Fuel: $${fuel.toFixed(2)}</p>
+        <p>Total Expenses: $${total.toFixed(2)}</p>
+        <p><strong>Net Profit: $${profit.toFixed(2)}</strong></p>`;
+      document.getElementById("saveBtn").classList.remove("hidden");
+    }
+
+    async function saveLoad() {
+      const entry = {
+        username: currentUser,
+        pin: currentPin,
+        from_location: document.getElementById("fromInput").value,
+        to_location: document.getElementById("toInput").value,
+        miles: parseFloat(document.getElementById("miles").value) || 0,
+        rate: parseFloat(document.getElementById("rate").value) || 0,
+        fuel_price: parseFloat(document.getElementById("fuelPrice").value) || 0,
+        other_expenses: parseFloat(document.getElementById("expenses").value) || 0
+      };
+      const { data, error } = await supabase.from("loads").insert([entry]);
+      if (error) {
+        alert("Failed to save load.");
+      } else {
+        alert("Load saved.");
+        loadLoads();
+      }
+    }
+
+    async function loadLoads() {
+      const { data, error } = await supabase
+        .from("loads")
+        .select("*")
+        .eq("username", currentUser)
+        .eq("pin", currentPin)
+        .order("created_at", { ascending: false });
+      if (error) return;
+      const list = document.getElementById("loadList");
+      list.innerHTML = "";
+      data.forEach(load => {
+        const item = document.createElement("li");
+        item.textContent = `${load.from_location} → ${load.to_location}, $${load.rate} / $${load.miles} mi`;
+        list.appendChild(item);
+      });
+      document.getElementById("history").classList.remove("hidden");
+    }
+
+    function exportCSV() {
+      alert("CSV export from Supabase not implemented yet.");
+    }
+  </script>
 </body>
 </html>
