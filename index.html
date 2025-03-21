@@ -57,7 +57,7 @@
     let currentUser = "";
     let currentPin = "";
 
-    window.login = () => {
+    window.login = function () {
       const username = document.getElementById("username").value.trim();
       const pin = document.getElementById("pin").value.trim();
       if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
@@ -66,10 +66,10 @@
       document.getElementById("loginSection").classList.add("hidden");
       document.getElementById("appSection").classList.remove("hidden");
       document.getElementById("welcome").innerText = "Welcome, " + username + "!";
-      loadLoads();
+      window.loadLoads();
     };
 
-    window.updateDieselPrice = () => {
+    window.updateDieselPrice = function () {
       const url = `https://api.eia.gov/v2/seriesid/PET.EMD_EPD2D_PTE_NUS_DPG?api_key=${EIA_API_KEY}`;
       fetch(url)
         .then(res => res.json())
@@ -102,11 +102,11 @@
       });
     }
 
-    window.calculateDistance = () => {
+    window.calculateDistance = function () {
       document.getElementById("miles").value = "0";
     };
 
-    window.calculate = () => {
+    window.calculate = function () {
       const rate = parseFloat(document.getElementById("rate").value) || 0;
       const miles = parseFloat(document.getElementById("miles").value) || 0;
       const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
@@ -126,7 +126,7 @@
       document.getElementById("saveBtn").classList.remove("hidden");
     };
 
-    window.saveLoad = async () => {
+    window.saveLoad = async function () {
       const entry = {
         username: currentUser,
         pin: currentPin,
@@ -142,11 +142,11 @@
         alert("Failed to save load.");
       } else {
         alert("Load saved.");
-        loadLoads();
+        window.loadLoads();
       }
     };
 
-    window.loadLoads = async () => {
+    window.loadLoads = async function () {
       const { data, error } = await sb
         .from("loads")
         .select("*")
@@ -164,7 +164,7 @@
       document.getElementById("history").classList.remove("hidden");
     };
 
-    window.exportCSV = () => {
+    window.exportCSV = function () {
       alert("CSV export from Supabase not implemented yet.");
     };
 
