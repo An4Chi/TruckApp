@@ -241,7 +241,7 @@
         <td>${miles.toFixed(1)}</td>
         <td>$${rate.toFixed(2)}</td>
         <td>$${net.toFixed(2)}</td>
-        <td>$${(rate / miles).toFixed(2)}</td><td><button onclick="deleteLoad(`${item.id}`)">🗑</button></td>`;
+        <td>$${(rate / miles).toFixed(2)}</td><td><button onclick="deleteLoad(${item.id})">🗑</button></td>`;
       tbody.appendChild(tr);
     });
 
