@@ -10,7 +10,7 @@
       background-color: #1e1e1e;
       color: #fff;
       font-family: sans-serif;
-      max-width: 700px;
+      max-width: 900px;
       margin: auto;
       padding: 20px;
     }
@@ -29,7 +29,24 @@
       cursor: pointer;
     }
     .hidden { display: none; }
-    ul { padding-left: 20px; }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #444;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    #netTotal {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 20px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -54,11 +71,21 @@
     <button onclick="calculate()">Calculate Profit</button>
     <div id="result" class="hidden"></div>
     <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
-    <button onclick="exportCSV()">Export to CSV</button>
-    <div id="history">
-      <h3>Saved Loads:</h3>
-      <ul id="loadList"></ul>
-    </div>
+
+    <div id="netTotal"></div>
+    <table id="loadTable" class="hidden">
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>To</th>
+          <th>Miles</th>
+          <th>Load $</th>
+          <th>Net $</th>
+          <th>$ / mi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
 <script>
@@ -68,11 +95,6 @@
   document.getElementById("loginBtn").addEventListener("click", async () => {
     const username = document.getElementById("username").value.trim();
     const pin = document.getElementById("pin").value.trim();
-
-    if (username === "" || pin.length !== 4) {
-      alert("Enter valid name and PIN.");
-      return;
-    }
 
     const { data, error } = await supabase
       .from("users")
@@ -171,9 +193,7 @@
     const { error } = await supabase.from("loads").insert([payload]);
     if (error) {
       alert("Failed to save load.");
-      console.error(error);
     } else {
-      alert("Load saved.");
       loadSavedLoads();
     }
   }
@@ -184,17 +204,38 @@
       .select("*")
       .eq("username", currentUser)
       .order("id", { ascending: false });
-    const list = document.getElementById("loadList");
-    list.innerHTML = "";
-    data?.forEach(item => {
-      const li = document.createElement("li");
-      li.textContent = `${item.from} → ${item.to} | $${item.rate} | $/mi: $${(item.rate / item.miles).toFixed(2)}`;
-      list.appendChild(li);
-    });
-  }
+    
+    const tbody = document.querySelector("#loadTable tbody");
+    const table = document.getElementById("loadTable");
+    const netDiv = document.getElementById("netTotal");
+    tbody.innerHTML = "";
+    let totalNet = 0;
 
-  function exportCSV() {
-    alert("CSV export not implemented yet.");
+    data?.forEach(item => {
+      const rate = parseFloat(item.rate) || 0;
+      const miles = parseFloat(item.miles) || 0;
+      const fuelPrice = parseFloat(item.fuel_price) || 0;
+      const expenses = parseFloat(item.expenses) || 0;
+      const mpg = 6.2;
+      const dispatcher = rate * 0.10;
+      const fuel = (miles / mpg) * fuelPrice;
+      const total = dispatcher + fuel + expenses;
+      const net = rate - total;
+      totalNet += net;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.from}</td>
+        <td>${item.to}</td>
+        <td>${miles.toFixed(1)}</td>
+        <td>$${rate.toFixed(2)}</td>
+        <td>$${net.toFixed(2)}</td>
+        <td>$${(rate / miles).toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    table.classList.remove("hidden");
+    netDiv.textContent = "Total Net Profit: $" + totalNet.toFixed(2);
   }
 </script>
 </body>
