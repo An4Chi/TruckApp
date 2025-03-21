@@ -65,10 +65,27 @@
   const supabase = window.supabase.createClient("https://xnhvmzwnmnymchbfnkge.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM");
   let currentUser = null;
 
-  document.getElementById("loginBtn").addEventListener("click", () => {
+  document.getElementById("loginBtn").addEventListener("click", async () => {
     const username = document.getElementById("username").value.trim();
     const pin = document.getElementById("pin").value.trim();
-    if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
+
+    if (username === "" || pin.length !== 4) {
+      alert("Enter valid name and PIN.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("name", username)
+      .eq("pin", pin)
+      .single();
+
+    if (error || !data) {
+      alert("Invalid credentials. Try again.");
+      return;
+    }
+
     currentUser = username;
     document.getElementById("loginSection").classList.add("hidden");
     document.getElementById("appSection").classList.remove("hidden");
