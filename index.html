@@ -44,9 +44,22 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://xnhvmzwnmnymchbfnkge.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM";
-    const EIA_API_KEY = "Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5";
+    async function updateDieselPrice() {
+      const url = `https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key=Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5&frequency=weekly&data[0]=value&facets[product][]=EPD2D&facets[area][]=NUS&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const latest = data?.response?.data?.[0]?.value;
+        if (latest) {
+          document.getElementById("fuelPrice").value = latest;
+          alert("Diesel price updated: $" + latest);
+        } else {
+          alert("Could not retrieve price.");
+        }
+      } catch (e) {
+        alert("Error fetching diesel price.");
+      }
+    }
 
     async function getCoordinates(location) {
       const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
@@ -71,23 +84,6 @@
       const distanceMeters = data.routes?.[0]?.distance || 0;
       const distanceMiles = distanceMeters / 1609.34;
       document.getElementById("miles").value = distanceMiles.toFixed(1);
-    }
-
-    async function updateDieselPrice() {
-      const url = `https://api.eia.gov/v2/seriesid/PET.EMD_EPD2D_PTE_NUS_DPG?api_key=${EIA_API_KEY}`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const latest = data?.response?.data?.[0]?.value;
-        if (latest) {
-          document.getElementById("fuelPrice").value = latest;
-          alert("Diesel price updated: $" + latest);
-        } else {
-          alert("Could not retrieve price.");
-        }
-      } catch (e) {
-        alert("Error fetching diesel price.");
-      }
     }
 
     function autocomplete(inputId) {
