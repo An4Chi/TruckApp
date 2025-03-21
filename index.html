@@ -45,19 +45,19 @@
 
   <script>
     async function updateDieselPrice() {
-      const url = `https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key=Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5&frequency=weekly&data[0]=value&facets[product][]=EPD2D&facets[area][]=NUS&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1`;
+      const url = `https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key=Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5&frequency=weekly&data[0]=value&facets[product][]=EPD2D&facets[area][]=IL&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1`;
       try {
         const res = await fetch(url);
         const data = await res.json();
         const latest = data?.response?.data?.[0]?.value;
         if (latest) {
           document.getElementById("fuelPrice").value = latest;
-          alert("Diesel price updated: $" + latest);
+          alert("Diesel price in IL updated: $" + latest);
         } else {
-          alert("Could not retrieve price.");
+          alert("Could not retrieve diesel price for IL.");
         }
       } catch (e) {
-        alert("Error fetching diesel price.");
+        alert("Error fetching diesel price for IL.");
       }
     }
 
