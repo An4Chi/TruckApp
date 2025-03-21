@@ -5,6 +5,32 @@
   <title>Truck Net Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #fff;
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      background-color: #2c2c2c;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #444;
+      cursor: pointer;
+    }
+    .hidden { display: none; }
+    ul { padding-left: 20px; }
+  </style>
 </head>
 <body>
   <h1>Truck Net Calculator</h1>
@@ -13,10 +39,13 @@
     <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
     <button id="loginBtn">Login</button>
   </div>
+
   <div id="appSection" class="hidden">
     <h2 id="welcome"></h2>
-    <input id="fromInput" placeholder="From" />
-    <input id="toInput" placeholder="To" />
+    <input id="fromInput" placeholder="From" list="fromInput-list" />
+    <datalist id="fromInput-list"></datalist>
+    <input id="toInput" placeholder="To" list="toInput-list" />
+    <datalist id="toInput-list"></datalist>
     <button id="calcDistance">Calculate Distance</button>
     <input id="miles" placeholder="Miles" readonly />
     <input id="rate" placeholder="Load Rate ($)" />
@@ -47,6 +76,28 @@
     loadSavedLoads();
   });
 
+  function autocomplete(inputId) {
+    const input = document.getElementById(inputId);
+    input.addEventListener("input", () => {
+      const query = input.value;
+      if (query.length < 2) return;
+      fetch(`https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          const datalist = document.getElementById(inputId + "-list");
+          datalist.innerHTML = "";
+          data.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item.display_name;
+            datalist.appendChild(option);
+          });
+        });
+    });
+  }
+
+  autocomplete("fromInput");
+  autocomplete("toInput");
+
   async function getCoordinates(location) {
     const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
     const res = await fetch(url);
@@ -68,6 +119,8 @@
     document.getElementById("miles").value = miles.toFixed(1);
   }
 
+  document.getElementById("calcDistance").addEventListener("click", calculateDistance);
+
   function calculate() {
     const rate = parseFloat(document.getElementById("rate").value) || 0;
     const miles = parseFloat(document.getElementById("miles").value) || 0;
@@ -78,6 +131,7 @@
     const fuel = (miles / mpg) * fuelPrice;
     const total = dispatcher + fuel + expenses;
     const profit = rate - total;
+
     document.getElementById("result").classList.remove("hidden");
     document.getElementById("result").innerHTML = `
       <p>Dispatcher: $${dispatcher.toFixed(2)}</p>
