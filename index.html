@@ -25,12 +25,12 @@
     <datalist id="fromInput-list"></datalist>
     <input id="toInput" placeholder="To" list="toInput-list" />
     <datalist id="toInput-list"></datalist>
-    <button onclick="calculateDistance()">Calculate Distance</button>
+    <button id="calcDistance">Calculate Distance</button>
     <input id="miles" placeholder="Miles" readonly />
     <input id="rate" placeholder="Load Rate ($)" />
     <div style="display: flex; gap: 10px;">
       <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
-      <button onclick="updateDieselPrice()">Update Diesel Price</button>
+      <button id="updateDiesel">Update Diesel Price</button>
     </div>
     <input id="expenses" placeholder="Other Expenses ($)" />
     <button onclick="calculate()">Calculate Profit</button>
@@ -43,36 +43,52 @@
     </div>
   </div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
+  <script>
     const SUPABASE_URL = "https://xnhvmzwnmnymchbfnkge.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM";
     const EIA_API_KEY = "Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5";
 
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      global: { headers: { apikey: SUPABASE_KEY } }
-    });
-
-    let currentUser = "", currentPin = "";
-
-    function login() {
-      const username = document.getElementById("username").value.trim();
-      const pin = document.getElementById("pin").value.trim();
-      if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
-      currentUser = username;
-      currentPin = pin;
-      document.getElementById("loginSection").classList.add("hidden");
-      document.getElementById("appSection").classList.remove("hidden");
-      document.getElementById("welcome").innerText = "Welcome, " + username + "!";
-      loadLoads();
+    async function getCoordinates(location) {
+      const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data[0] ? { lat: data[0].lat, lon: data[0].lon } : null;
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("loginBtn").addEventListener("click", login);
-      autocomplete("fromInput");
-      autocomplete("toInput");
-    });
+    async function calculateDistance() {
+      const from = document.getElementById("fromInput").value;
+      const to = document.getElementById("toInput").value;
+      if (!from || !to) return;
+
+      const fromCoord = await getCoordinates(from);
+      const toCoord = await getCoordinates(to);
+      if (!fromCoord || !toCoord) return alert("Unable to find one of the locations.");
+
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`;
+      const res = await fetch(routeUrl);
+      const data = await res.json();
+
+      const distanceMeters = data.routes?.[0]?.distance || 0;
+      const distanceMiles = distanceMeters / 1609.34;
+      document.getElementById("miles").value = distanceMiles.toFixed(1);
+    }
+
+    async function updateDieselPrice() {
+      const url = `https://api.eia.gov/v2/seriesid/PET.EMD_EPD2D_PTE_NUS_DPG?api_key=${EIA_API_KEY}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const latest = data?.response?.data?.[0]?.value;
+        if (latest) {
+          document.getElementById("fuelPrice").value = latest;
+          alert("Diesel price updated: $" + latest);
+        } else {
+          alert("Could not retrieve price.");
+        }
+      } catch (e) {
+        alert("Error fetching diesel price.");
+      }
+    }
 
     function autocomplete(inputId) {
       const input = document.getElementById(inputId);
@@ -93,11 +109,22 @@
       });
     }
 
-    window.calculateDistance = function () {
-      document.getElementById("miles").value = "0";
-    };
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("loginBtn").addEventListener("click", () => {
+        const username = document.getElementById("username").value.trim();
+        const pin = document.getElementById("pin").value.trim();
+        if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("appSection").classList.remove("hidden");
+        document.getElementById("welcome").innerText = "Welcome, " + username + "!";
+      });
+      document.getElementById("calcDistance").addEventListener("click", calculateDistance);
+      document.getElementById("updateDiesel").addEventListener("click", updateDieselPrice);
+      autocomplete("fromInput");
+      autocomplete("toInput");
+    });
 
-    window.calculate = function () {
+    function calculate() {
       const rate = parseFloat(document.getElementById("rate").value) || 0;
       const miles = parseFloat(document.getElementById("miles").value) || 0;
       const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
@@ -115,63 +142,15 @@
         <p>Total Expenses: $${total.toFixed(2)}</p>
         <p><strong>Net Profit: $${profit.toFixed(2)}</strong></p>`;
       document.getElementById("saveBtn").classList.remove("hidden");
-    };
-
-    window.saveLoad = async function () {
-      const entry = {
-        username: currentUser,
-        pin: currentPin,
-        from_location: document.getElementById("fromInput").value,
-        to_location: document.getElementById("toInput").value,
-        miles: parseFloat(document.getElementById("miles").value) || 0,
-        rate: parseFloat(document.getElementById("rate").value) || 0,
-        fuel_price: parseFloat(document.getElementById("fuelPrice").value) || 0,
-        other_expenses: parseFloat(document.getElementById("expenses").value) || 0
-      };
-      const { error } = await sb.from("loads").insert([entry]);
-      if (error) {
-        alert("Failed to save load.");
-      } else {
-        alert("Load saved.");
-        loadLoads();
-      }
-    };
-
-    function loadLoads() {
-      sb.from("loads")
-        .select("*")
-        .eq("username", currentUser)
-        .eq("pin", currentPin)
-        .order("created_at", { ascending: false })
-        .then(({ data, error }) => {
-          if (error) return;
-          const list = document.getElementById("loadList");
-          list.innerHTML = "";
-          data.forEach(load => {
-            const item = document.createElement("li");
-            item.textContent = `${load.from_location} → ${load.to_location}, $${load.rate} / ${load.miles} mi`;
-            list.appendChild(item);
-          });
-          document.getElementById("history").classList.remove("hidden");
-        });
     }
 
-    window.exportCSV = function () {
-      alert("CSV export from Supabase not implemented yet.");
-    };
+    function saveLoad() {
+      alert("Saving to Supabase not included in this test version.");
+    }
 
-    window.updateDieselPrice = function () {
-      fetch(`https://api.eia.gov/v2/seriesid/PET.EMD_EPD2D_PTE_NUS_DPG?api_key=${EIA_API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-          const latest = data.response.data[0].value;
-          document.getElementById("fuelPrice").value = latest;
-          alert("Diesel price updated: $" + latest);
-        })
-        .catch(() => {
-          alert("Failed to fetch diesel price.");
-        });
-    };
+    function exportCSV() {
+      alert("CSV export not implemented yet.");
+    }
   </script>
 </body>
 </html>
