@@ -4,6 +4,45 @@
   <meta charset="UTF-8" />
   <title>Truck Net Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { background-color: #1e1e1e; color: #fff; font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; }
+    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px; }
+    button { background-color: #444; cursor: pointer; }
+    .hidden { display: none; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Truck Net Calculator</h1>
+  <div id="loginSection">
+    <input id="username" placeholder="Name" />
+    <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
+    <button onclick="login()">Login</button>
+  </div>
+  <div id="appSection" class="hidden">
+    <h2 id="welcome"></h2>
+    <input id="fromInput" placeholder="From" list="fromInput-list" />
+    <datalist id="fromInput-list"></datalist>
+    <input id="toInput" placeholder="To" list="toInput-list" />
+    <datalist id="toInput-list"></datalist>
+    <button onclick="calculateDistance()">Calculate Distance</button>
+    <input id="miles" placeholder="Miles" readonly />
+    <input id="rate" placeholder="Load Rate ($)" />
+    <div style="display: flex; gap: 10px;">
+      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
+      <button onclick="updateDieselPrice()">Update Diesel Price</button>
+    </div>
+    <input id="expenses" placeholder="Other Expenses ($)" />
+    <button onclick="calculate()">Calculate Profit</button>
+    <div id="result" class="hidden"></div>
+    <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
+    <button onclick="exportCSV()">Export to CSV</button>
+    <div id="history" class="hidden">
+      <h3>Saved Loads:</h3>
+      <ul id="loadList"></ul>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -134,43 +173,5 @@
       autocomplete("toInput");
     });
   </script>
-  <style>
-    body { background-color: #1e1e1e; color: #fff; font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px; }
-    button { background-color: #444; cursor: pointer; }
-    .hidden { display: none; }
-    ul { padding-left: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Truck Net Calculator</h1>
-  <div id="loginSection">
-    <input id="username" placeholder="Name" />
-    <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
-    <button onclick="login()">Login</button>
-  </div>
-  <div id="appSection" class="hidden">
-    <h2 id="welcome"></h2>
-    <input id="fromInput" placeholder="From" list="fromInput-list" />
-    <datalist id="fromInput-list"></datalist>
-    <input id="toInput" placeholder="To" list="toInput-list" />
-    <datalist id="toInput-list"></datalist>
-    <button onclick="calculateDistance()">Calculate Distance</button>
-    <input id="miles" placeholder="Miles" readonly />
-    <input id="rate" placeholder="Load Rate ($)" />
-    <div style="display: flex; gap: 10px;">
-      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
-      <button onclick="updateDieselPrice()">Update Diesel Price</button>
-    </div>
-    <input id="expenses" placeholder="Other Expenses ($)" />
-    <button onclick="calculate()">Calculate Profit</button>
-    <div id="result" class="hidden"></div>
-    <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
-    <button onclick="exportCSV()">Export to CSV</button>
-    <div id="history" class="hidden">
-      <h3>Saved Loads:</h3>
-      <ul id="loadList"></ul>
-    </div>
-  </div>
 </body>
 </html>
