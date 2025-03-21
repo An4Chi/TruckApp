@@ -4,13 +4,7 @@
   <meta charset="UTF-8" />
   <title>Truck Net Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { background-color: #1e1e1e; color: #fff; font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px; }
-    button { background-color: #444; cursor: pointer; }
-    .hidden { display: none; }
-    ul { padding-left: 20px; }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
   <h1>Truck Net Calculator</h1>
@@ -21,132 +15,116 @@
   </div>
   <div id="appSection" class="hidden">
     <h2 id="welcome"></h2>
-    <input id="fromInput" placeholder="From" list="fromInput-list" />
-    <datalist id="fromInput-list"></datalist>
-    <input id="toInput" placeholder="To" list="toInput-list" />
-    <datalist id="toInput-list"></datalist>
+    <input id="fromInput" placeholder="From" />
+    <input id="toInput" placeholder="To" />
     <button id="calcDistance">Calculate Distance</button>
     <input id="miles" placeholder="Miles" readonly />
     <input id="rate" placeholder="Load Rate ($)" />
-    <div style="display: flex; gap: 10px;">
-      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
-      <button id="updateDiesel">Update Diesel Price</button>
-    </div>
+    <input id="fuelPrice" placeholder="Fuel Price ($/gal)" value="3.85" />
     <input id="expenses" placeholder="Other Expenses ($)" />
     <button onclick="calculate()">Calculate Profit</button>
     <div id="result" class="hidden"></div>
     <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
     <button onclick="exportCSV()">Export to CSV</button>
-    <div id="history" class="hidden">
+    <div id="history">
       <h3>Saved Loads:</h3>
       <ul id="loadList"></ul>
     </div>
   </div>
 
-  <script>
-    async function updateDieselPrice() {
-      const url = `https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key=Vr7yY3TlG39qALlIx4mgKtKanPlff6xSsWWS6sm5&frequency=weekly&data[0]=value&facets[product][]=EPD2D&facets[area][]=IL&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const latest = data?.response?.data?.[0]?.value;
-        if (latest) {
-          document.getElementById("fuelPrice").value = latest;
-          alert("Diesel price in IL updated: $" + latest);
-        } else {
-          alert("Could not retrieve diesel price for IL.");
-        }
-      } catch (e) {
-        alert("Error fetching diesel price for IL.");
-      }
+<script>
+  const supabase = window.supabase.createClient("https://xnhvmzwnmnymchbfnkge.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM");
+  let currentUser = null;
+
+  document.getElementById("loginBtn").addEventListener("click", () => {
+    const username = document.getElementById("username").value.trim();
+    const pin = document.getElementById("pin").value.trim();
+    if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
+    currentUser = username;
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("appSection").classList.remove("hidden");
+    document.getElementById("welcome").innerText = "Welcome, " + username + "!";
+    loadSavedLoads();
+  });
+
+  async function getCoordinates(location) {
+    const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return { lat: data[0].lat, lon: data[0].lon };
+  }
+
+  async function calculateDistance() {
+    const from = document.getElementById("fromInput").value;
+    const to = document.getElementById("toInput").value;
+    if (!from || !to) return;
+    const fromCoord = await getCoordinates(from);
+    const toCoord = await getCoordinates(to);
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const meters = data.routes?.[0]?.distance || 0;
+    const miles = meters / 1609.34;
+    document.getElementById("miles").value = miles.toFixed(1);
+  }
+
+  function calculate() {
+    const rate = parseFloat(document.getElementById("rate").value) || 0;
+    const miles = parseFloat(document.getElementById("miles").value) || 0;
+    const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
+    const expenses = parseFloat(document.getElementById("expenses").value) || 0;
+    const mpg = 6.2;
+    const dispatcher = rate * 0.10;
+    const fuel = (miles / mpg) * fuelPrice;
+    const total = dispatcher + fuel + expenses;
+    const profit = rate - total;
+    document.getElementById("result").classList.remove("hidden");
+    document.getElementById("result").innerHTML = `
+      <p>Dispatcher: $${dispatcher.toFixed(2)}</p>
+      <p>Fuel: $${fuel.toFixed(2)}</p>
+      <p>Total Expenses: $${total.toFixed(2)}</p>
+      <p><strong>Net Profit: $${profit.toFixed(2)}</strong></p>`;
+    document.getElementById("saveBtn").classList.remove("hidden");
+  }
+
+  async function saveLoad() {
+    const payload = {
+      username: currentUser,
+      from: document.getElementById("fromInput").value,
+      to: document.getElementById("toInput").value,
+      miles: parseFloat(document.getElementById("miles").value) || 0,
+      rate: parseFloat(document.getElementById("rate").value) || 0,
+      fuel_price: parseFloat(document.getElementById("fuelPrice").value) || 0,
+      expenses: parseFloat(document.getElementById("expenses").value) || 0,
+    };
+    const { error } = await supabase.from("loads").insert([payload]);
+    if (error) {
+      alert("Failed to save load.");
+      console.error(error);
+    } else {
+      alert("Load saved.");
+      loadSavedLoads();
     }
+  }
 
-    async function getCoordinates(location) {
-      const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      return data[0] ? { lat: data[0].lat, lon: data[0].lon } : null;
-    }
-
-    async function calculateDistance() {
-      const from = document.getElementById("fromInput").value;
-      const to = document.getElementById("toInput").value;
-      if (!from || !to) return;
-
-      const fromCoord = await getCoordinates(from);
-      const toCoord = await getCoordinates(to);
-      if (!fromCoord || !toCoord) return alert("Unable to find one of the locations.");
-
-      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`;
-      const res = await fetch(routeUrl);
-      const data = await res.json();
-
-      const distanceMeters = data.routes?.[0]?.distance || 0;
-      const distanceMiles = distanceMeters / 1609.34;
-      document.getElementById("miles").value = distanceMiles.toFixed(1);
-    }
-
-    function autocomplete(inputId) {
-      const input = document.getElementById(inputId);
-      input.addEventListener("input", () => {
-        const query = input.value;
-        if (query.length < 2) return;
-        fetch(`https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(query)}`)
-          .then(res => res.json())
-          .then(data => {
-            const datalist = document.getElementById(inputId + "-list");
-            datalist.innerHTML = "";
-            data.forEach(item => {
-              const option = document.createElement("option");
-              option.value = item.display_name;
-              datalist.appendChild(option);
-            });
-          });
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("loginBtn").addEventListener("click", () => {
-        const username = document.getElementById("username").value.trim();
-        const pin = document.getElementById("pin").value.trim();
-        if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("appSection").classList.remove("hidden");
-        document.getElementById("welcome").innerText = "Welcome, " + username + "!";
-      });
-      document.getElementById("calcDistance").addEventListener("click", calculateDistance);
-      document.getElementById("updateDiesel").addEventListener("click", updateDieselPrice);
-      autocomplete("fromInput");
-      autocomplete("toInput");
+  async function loadSavedLoads() {
+    const { data, error } = await supabase
+      .from("loads")
+      .select("*")
+      .eq("username", currentUser)
+      .order("id", { ascending: false });
+    const list = document.getElementById("loadList");
+    list.innerHTML = "";
+    data?.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.from} → ${item.to} | $${item.rate} | $/mi: $${(item.rate / item.miles).toFixed(2)}`;
+      list.appendChild(li);
     });
+  }
 
-    function calculate() {
-      const rate = parseFloat(document.getElementById("rate").value) || 0;
-      const miles = parseFloat(document.getElementById("miles").value) || 0;
-      const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
-      const expenses = parseFloat(document.getElementById("expenses").value) || 0;
-      const mpg = 6.2;
-      const dispatcher = rate * 0.10;
-      const fuel = (miles / mpg) * fuelPrice;
-      const total = dispatcher + fuel + expenses;
-      const profit = rate - total;
-
-      document.getElementById("result").classList.remove("hidden");
-      document.getElementById("result").innerHTML = `
-        <p>Dispatcher: $${dispatcher.toFixed(2)}</p>
-        <p>Fuel: $${fuel.toFixed(2)}</p>
-        <p>Total Expenses: $${total.toFixed(2)}</p>
-        <p><strong>Net Profit: $${profit.toFixed(2)}</strong></p>`;
-      document.getElementById("saveBtn").classList.remove("hidden");
-    }
-
-    function saveLoad() {
-      alert("Saving to Supabase not included in this test version.");
-    }
-
-    function exportCSV() {
-      alert("CSV export not implemented yet.");
-    }
-  </script>
+  function exportCSV() {
+    alert("CSV export not implemented yet.");
+  }
+</script>
 </body>
 </html>
