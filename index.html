@@ -4,7 +4,18 @@
   <meta charset="UTF-8" />
   <title>Truck Net Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js">
+  async function deleteLoad(id) {
+    if (!confirm("Are you sure you want to delete this load?")) return;
+    const { error } = await supabase.from("loads").delete().eq("id", id);
+    if (error) {
+      alert("Failed to delete.");
+      console.error(error);
+    } else {
+      loadSavedLoads();
+    }
+  }
+</script>
   <style>
     body {
       background-color: #1e1e1e;
@@ -81,7 +92,7 @@
           <th>Miles</th>
           <th>Load $</th>
           <th>Net $</th>
-          <th>$ / mi</th>
+          <th>$ / mi</th><th>Delete</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -230,12 +241,23 @@
         <td>${miles.toFixed(1)}</td>
         <td>$${rate.toFixed(2)}</td>
         <td>$${net.toFixed(2)}</td>
-        <td>$${(rate / miles).toFixed(2)}</td>`;
+        <td>$${(rate / miles).toFixed(2)}</td><td><button onclick="deleteLoad(`${item.id}`)">🗑</button></td>`;
       tbody.appendChild(tr);
     });
 
     table.classList.remove("hidden");
     netDiv.textContent = "Total Net Profit: $" + totalNet.toFixed(2);
+  }
+
+  async function deleteLoad(id) {
+    if (!confirm("Are you sure you want to delete this load?")) return;
+    const { error } = await supabase.from("loads").delete().eq("id", id);
+    if (error) {
+      alert("Failed to delete.");
+      console.error(error);
+    } else {
+      loadSavedLoads();
+    }
   }
 </script>
 </body>
