@@ -4,54 +4,21 @@
   <meta charset="UTF-8" />
   <title>Truck Net Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { background-color: #1e1e1e; color: #fff; font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px; }
-    button { background-color: #444; cursor: pointer; }
-    .hidden { display: none; }
-    ul { padding-left: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Truck Net Calculator</h1>
-  <div id="loginSection">
-    <input id="username" placeholder="Name" />
-    <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
-    <button onclick="login()">Login</button>
-  </div>
-  <div id="appSection" class="hidden">
-    <h2 id="welcome"></h2>
-    <input id="fromInput" placeholder="From" />
-    <input id="toInput" placeholder="To" />
-    <button onclick="calculateDistance()">Calculate Distance</button>
-    <input id="miles" placeholder="Miles" readonly />
-    <input id="rate" placeholder="Load Rate ($)" />
-    <div style="display: flex; gap: 10px;">
-      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
-      <button onclick="updateDieselPrice()">Update Diesel Price</button>
-    </div>
-    <input id="expenses" placeholder="Other Expenses ($)" />
-    <button onclick="calculate()">Calculate Profit</button>
-    <div id="result" class="hidden"></div>
-    <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
-    <button onclick="exportCSV()">Export to CSV</button>
-    <div id="history" class="hidden">
-      <h3>Saved Loads:</h3>
-      <ul id="loadList"></ul>
-    </div>
-  </div>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  <script>
-    const sb = supabase.createClient(
-      "https://xnhvmzwnmnymchbfnkge.supabase.co",
-      "Vr7yY3QlG39qALlIx4mgKtKanPlff6xSsWWS6sm5"
-    );
+    const SUPABASE_URL = import.meta.env.SUPABASE_URL;
+    const SUPABASE_KEY = import.meta.env.SUPABASE_KEY;
+    const EIA_API_KEY = import.meta.env.EIA_API_KEY;
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      global: { headers: { apikey: SUPABASE_KEY } }
+    });
 
     let currentUser = "";
     let currentPin = "";
 
-    function login() {
+    window.login = () => {
       const username = document.getElementById("username").value.trim();
       const pin = document.getElementById("pin").value.trim();
       if (username === "" || pin.length !== 4) return alert("Enter valid name and PIN.");
@@ -61,27 +28,46 @@
       document.getElementById("appSection").classList.remove("hidden");
       document.getElementById("welcome").innerText = "Welcome, " + username + "!";
       loadLoads();
-    }
+    };
 
-    function updateDieselPrice() {
-      const url = "https://api.eia.gov/series/?api_key=Vr7yY3QlG39qALlIx4mgKtKanPlff6xSsWWS6sm5&series_id=PET.EMD_EPD2D_PTE_NUS_DPG.W";
+    window.updateDieselPrice = () => {
+      const url = `https://api.eia.gov/v2/seriesid/PET.EMD_EPD2D_PTE_NUS_DPG?api_key=${EIA_API_KEY}`;
       fetch(url)
         .then(res => res.json())
         .then(data => {
-          const latest = data.series[0].data[0][1];
+          const latest = data.response.data[0].value;
           document.getElementById("fuelPrice").value = latest;
           alert("Diesel price updated: $" + latest);
         })
         .catch(() => {
           alert("Failed to fetch diesel price. Please enter manually.");
         });
+    };
+
+    function autocomplete(inputId) {
+      const input = document.getElementById(inputId);
+      input.addEventListener("input", () => {
+        const query = input.value;
+        if (query.length < 2) return;
+        fetch(`https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            const datalist = document.getElementById(inputId + "-list");
+            datalist.innerHTML = "";
+            data.forEach(item => {
+              const option = document.createElement("option");
+              option.value = item.display_name;
+              datalist.appendChild(option);
+            });
+          });
+      });
     }
 
-    function calculateDistance() {
+    window.calculateDistance = () => {
       document.getElementById("miles").value = "0";
-    }
+    };
 
-    function calculate() {
+    window.calculate = () => {
       const rate = parseFloat(document.getElementById("rate").value) || 0;
       const miles = parseFloat(document.getElementById("miles").value) || 0;
       const fuelPrice = parseFloat(document.getElementById("fuelPrice").value) || 0;
@@ -99,9 +85,9 @@
         <p>Total Expenses: $${total.toFixed(2)}</p>
         <p><strong>Net Profit: $${profit.toFixed(2)}</strong></p>`;
       document.getElementById("saveBtn").classList.remove("hidden");
-    }
+    };
 
-    async function saveLoad() {
+    window.saveLoad = async () => {
       const entry = {
         username: currentUser,
         pin: currentPin,
@@ -119,9 +105,9 @@
         alert("Load saved.");
         loadLoads();
       }
-    }
+    };
 
-    async function loadLoads() {
+    window.loadLoads = async () => {
       const { data, error } = await sb
         .from("loads")
         .select("*")
@@ -137,11 +123,54 @@
         list.appendChild(item);
       });
       document.getElementById("history").classList.remove("hidden");
-    }
+    };
 
-    function exportCSV() {
+    window.exportCSV = () => {
       alert("CSV export from Supabase not implemented yet.");
-    }
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      autocomplete("fromInput");
+      autocomplete("toInput");
+    });
   </script>
+  <style>
+    body { background-color: #1e1e1e; color: #fff; font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; }
+    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px; }
+    button { background-color: #444; cursor: pointer; }
+    .hidden { display: none; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Truck Net Calculator</h1>
+  <div id="loginSection">
+    <input id="username" placeholder="Name" />
+    <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
+    <button onclick="login()">Login</button>
+  </div>
+  <div id="appSection" class="hidden">
+    <h2 id="welcome"></h2>
+    <input id="fromInput" placeholder="From" list="fromInput-list" />
+    <datalist id="fromInput-list"></datalist>
+    <input id="toInput" placeholder="To" list="toInput-list" />
+    <datalist id="toInput-list"></datalist>
+    <button onclick="calculateDistance()">Calculate Distance</button>
+    <input id="miles" placeholder="Miles" readonly />
+    <input id="rate" placeholder="Load Rate ($)" />
+    <div style="display: flex; gap: 10px;">
+      <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
+      <button onclick="updateDieselPrice()">Update Diesel Price</button>
+    </div>
+    <input id="expenses" placeholder="Other Expenses ($)" />
+    <button onclick="calculate()">Calculate Profit</button>
+    <div id="result" class="hidden"></div>
+    <button id="saveBtn" class="hidden" onclick="saveLoad()">Save Load</button>
+    <button onclick="exportCSV()">Export to CSV</button>
+    <div id="history" class="hidden">
+      <h3>Saved Loads:</h3>
+      <ul id="loadList"></ul>
+    </div>
+  </div>
 </body>
 </html>
