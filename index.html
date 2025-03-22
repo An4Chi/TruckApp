@@ -35,6 +35,13 @@
     button:hover {
       background-color: #45a049;
     }
+    #contactMsg {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #2c2c2c;
+      border-radius: 4px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -42,12 +49,18 @@
   <input id="username" placeholder="Name" />
   <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
   <button onclick="login()">Login</button>
+  <button onclick="showContact()">Create Account</button>
+  <div id="contactMsg">
+    To create an account, please contact the administrator:<br>
+    <strong>773-677-3636</strong>
+  </div>
 
   <script>
     const supabase = window.supabase.createClient(
       "https://xnhvmzwnmnymchbfnkge.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM"
     );
+
     async function login() {
       const name = document.getElementById("username").value.trim();
       const pin = document.getElementById("pin").value.trim();
@@ -60,6 +73,10 @@
       if (error || !data) return alert("Invalid credentials.");
       localStorage.setItem("user", data.name);
       window.location.href = "app.html";
+    }
+
+    function showContact() {
+      document.getElementById("contactMsg").style.display = "block";
     }
   </script>
 </body>
