@@ -17,7 +17,7 @@
     h1 {
       text-align: center;
       font-size: 24px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     input, button {
       width: 100%;
@@ -90,6 +90,9 @@
   <table id="loadTable"><thead>
     <tr><th>From</th><th>To</th><th>Miles</th><th>Rate</th><th>Net</th><th>$ / mi</th><th>Delete</th></tr>
   </thead><tbody></tbody></table>
+
+  <!-- NEW Download Button -->
+  <button onclick="downloadCSV()">Download CSV</button>
 
 <script>
 const supabase = window.supabase.createClient(
@@ -218,6 +221,28 @@ async function loadLoads() {
   });
   document.getElementById("netTotal").innerText = "Total Net: $" + totalNet.toFixed(2);
 }
+
+async function downloadCSV() {
+  const { data, error } = await supabase.from("loads").select("*").eq("username", user);
+  if (error || !data || data.length === 0) return alert("No data to download.");
+
+  const csvHeader = ["From", "To", "Miles", "Rate", "Fuel Price", "Expenses"];
+  const csvRows = data.map(item =>
+    [item.from, item.to, item.miles, item.rate, item.fuel_price, item.expenses].join(",")
+  );
+
+  const csvContent = [csvHeader.join(","), ...csvRows].join("\\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "truck-loads.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 loadLoads();
 </script>
 </body>
