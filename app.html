@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Truck Net Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { background:#1e1e1e; color:#fff; font-family:sans-serif; max-width:900px; margin:auto; padding:20px; }
+    input, button {
+      width: 100%; padding: 10px; margin-top: 10px; font-size: 16px;
+      background-color: #2c2c2c; color: #fff; border: 1px solid #444; border-radius: 4px;
+    }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    #netTotal { font-size: 20px; font-weight: bold; margin-top: 20px; text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>Truck Net Calculator</h1>
+  <button onclick="location.href='account.html'">Account</button>
+  <div id="welcome"></div>
+  <input id="fromInput" placeholder="From" />
+  <input id="toInput" placeholder="To" />
+  <button onclick="calculateMiles()">Calculate Distance</button>
+  <input id="miles" placeholder="Miles" readonly />
+  <input id="rate" placeholder="Load Rate ($)" />
+  <input id="fuelPrice" placeholder="Fuel Price ($/gal)" value="3.85" />
+  <input id="expenses" placeholder="Other Expenses ($)" />
+  <button onclick="calculate()">Calculate Profit</button>
+  <div id="result"></div>
+  <button id="saveBtn" onclick="saveLoad()">Save Load</button>
+  <div id="netTotal"></div>
+  <table id="loadTable"><thead>
+    <tr><th>From</th><th>To</th><th>Miles</th><th>Rate</th><th>Net</th><th>$ / mi</th><th>Delete</th></tr>
+  </thead><tbody></tbody></table>
+<script>
+const supabase = window.supabase.createClient(
+  "https://xnhvmzwnmnymchbfnkge.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+);
+const user = localStorage.getItem("user");
+if (!user) location.href = "index.html";
+document.getElementById("welcome").innerText = "Welcome, " + user;
+
+async function calculateMiles() {
+  const from = document.getElementById("fromInput").value;
+  const to = document.getElementById("toInput").value;
+  const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${from};${to}?overview=false`);
+  const data = await res.json();
+  const meters = data.routes?.[0]?.distance || 0;
+  document.getElementById("miles").value = (meters / 1609.34).toFixed(1);
+}
+
+function calculate() {
+  const rate = parseFloat(document.getElementById("rate").value) || 0;
+  const miles = parseFloat(document.getElementById("miles").value) || 0;
+  const fuel = (miles / 6.2) * (parseFloat(document.getElementById("fuelPrice").value) || 0);
+  const dispatcher = rate * 0.1;
+  const expenses = parseFloat(document.getElementById("expenses").value) || 0;
+  const total = dispatcher + fuel + expenses;
+  const net = rate - total;
+  document.getElementById("result").innerHTML = `Net: $${net.toFixed(2)}`;
+}
+
+async function saveLoad() {
+  const payload = {
+    username: user,
+    from: document.getElementById("fromInput").value,
+    to: document.getElementById("toInput").value,
+    miles: parseFloat(document.getElementById("miles").value) || 0,
+    rate: parseFloat(document.getElementById("rate").value) || 0,
+    fuel_price: parseFloat(document.getElementById("fuelPrice").value) || 0,
+    expenses: parseFloat(document.getElementById("expenses").value) || 0,
+  };
+  await supabase.from("loads").insert([payload]);
+  loadLoads();
+}
+
+async function deleteLoad(id) {
+  await supabase.from("loads").delete().eq("id", id);
+  loadLoads();
+}
+
+async function loadLoads() {
+  const { data } = await supabase.from("loads").select("*").eq("username", user);
+  const tbody = document.querySelector("#loadTable tbody");
+  tbody.innerHTML = "";
+  let totalNet = 0;
+  data.forEach(item => {
+    const rate = parseFloat(item.rate), miles = parseFloat(item.miles), fuel = (miles / 6.2) * parseFloat(item.fuel_price);
+    const net = rate - (fuel + rate * 0.1 + parseFloat(item.expenses));
+    totalNet += net;
+    const row = `<tr>
+      <td>${item.from}</td><td>${item.to}</td><td>${miles.toFixed(1)}</td>
+      <td>$${rate.toFixed(2)}</td><td>$${net.toFixed(2)}</td><td>$${(rate/miles).toFixed(2)}</td>
+      <td><button onclick="deleteLoad(${item.id})">🗑</button></td></tr>`;
+    tbody.insertAdjacentHTML("beforeend", row);
+  });
+  document.getElementById("netTotal").innerText = "Total Net: $" + totalNet.toFixed(2);
+}
+loadLoads();
+</script>
+</body>
+</html>

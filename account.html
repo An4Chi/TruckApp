@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account - Truck Net Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body style="background:#1e1e1e;color:white;font-family:sans-serif;max-width:600px;margin:auto;padding:20px">
+  <h1>Account Settings</h1>
+  <div id="welcome"></div>
+  <input id="newName" placeholder="New Name" />
+  <input id="newPin" placeholder="New PIN (4 digits)" maxlength="4" />
+  <button onclick="saveChanges()">Save Changes</button>
+  <button onclick="goBack()">← Back to App</button>
+<script>
+const supabase = window.supabase.createClient(
+  "https://xnhvmzwnmnymchbfnkge.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+);
+const user = localStorage.getItem("user");
+if (!user) location.href = "index.html";
+document.getElementById("welcome").innerText = "Logged in as: " + user;
+async function saveChanges() {
+  const newName = document.getElementById("newName").value.trim();
+  const newPin = document.getElementById("newPin").value.trim();
+  if (!newName || newPin.length !== 4 || isNaN(newPin)) return alert("Enter valid values.");
+  const { error } = await supabase
+    .from("users")
+    .update({ name: newName, pin: newPin })
+    .ilike("name", user);
+  if (error) return alert("Failed to update.");
+  localStorage.setItem("user", newName);
+  alert("Updated successfully!");
+}
+function goBack() {
+  location.href = "app.html";
+}
+</script>
+</body>
+</html>
