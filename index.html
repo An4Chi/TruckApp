@@ -2,33 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Truck Net Calculator</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: white;
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    input, button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
+      font-size: 18px;
+      border-radius: 5px;
+      border: none;
+      background-color: #2c2c2c;
+      color: #fff;
+    }
+    button {
+      background-color: #4caf50;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
 </head>
-<body style="background:#1e1e1e;color:white;font-family:sans-serif;max-width:600px;margin:auto;padding:20px">
+<body>
   <h1>Login</h1>
   <input id="username" placeholder="Name" />
   <input id="pin" placeholder="PIN (4 digits)" maxlength="4" />
   <button onclick="login()">Login</button>
-<script>
-const supabase = window.supabase.createClient(
-  "https://xnhvmzwnmnymchbfnkge.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM"
-  
-);
-async function login() {
-  const name = document.getElementById("username").value.trim();
-  const pin = document.getElementById("pin").value.trim();
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .ilike("name", name)
-    .eq("pin", pin)
-    .single();
-  if (error || !data) return alert("Invalid credentials.");
-  localStorage.setItem("user", data.name);
-  window.location.href = "app.html";
-}
-</script>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      "https://xnhvmzwnmnymchbfnkge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    );
+    async function login() {
+      const name = document.getElementById("username").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .ilike("name", name)
+        .eq("pin", pin)
+        .single();
+      if (error || !data) return alert("Invalid credentials.");
+      localStorage.setItem("user", data.name);
+      window.location.href = "app.html";
+    }
+  </script>
 </body>
 </html>
