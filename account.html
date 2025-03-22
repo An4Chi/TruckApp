@@ -40,6 +40,11 @@
     button:hover {
       background-color: #45a049;
     }
+    .admin-section {
+      margin-top: 40px;
+      border-top: 1px solid #555;
+      padding-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -50,31 +55,61 @@
   <button onclick="saveChanges()">Save Changes</button>
   <button onclick="goBack()">← Back to App</button>
 
-  <script>
-    const supabase = window.supabase.createClient(
-      "https://xnhvmzwnmnymchbfnkge.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM"
-    );
-    const user = localStorage.getItem("user");
-    if (!user) location.href = "index.html";
-    document.getElementById("welcome").innerText = "Logged in as: " + user;
+  <div id="adminPanel" class="admin-section" style="display:none;">
+    <h2>Create New User</h2>
+    <input id="regName" placeholder="New User Name" />
+    <input id="regPin" placeholder="PIN (4 digits)" maxlength="4" />
+    <button onclick="createUser()">Create User</button>
+  </div>
 
-    async function saveChanges() {
-      const newName = document.getElementById("newName").value.trim();
-      const newPin = document.getElementById("newPin").value.trim();
-      if (!newName || newPin.length !== 4 || isNaN(newPin)) return alert("Enter valid values.");
-      const { error } = await supabase
-        .from("users")
-        .update({ name: newName, pin: newPin })
-        .ilike("name", user);
-      if (error) return alert("Failed to update.");
-      localStorage.setItem("user", newName);
-      alert("Updated successfully!");
-    }
+<script>
+const supabase = window.supabase.createClient(
+  "https://xnhvmzwnmnymchbfnkge.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuaHZtendubW55bWNoYmZua2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0OTE0NjAsImV4cCI6MjA1ODA2NzQ2MH0.GyNUbl1l44BEPFdY71yP_smentF3DLolC1lkVd49msM"
+);
 
-    function goBack() {
-      location.href = "app.html";
-    }
-  </script>
+const user = localStorage.getItem("user");
+if (!user) location.href = "index.html";
+document.getElementById("welcome").innerText = "Logged in as: " + user;
+
+if (user.toLowerCase() === "vit") {
+  document.getElementById("adminPanel").style.display = "block";
+}
+
+async function saveChanges() {
+  const newName = document.getElementById("newName").value.trim();
+  const newPin = document.getElementById("newPin").value.trim();
+  if (!newName || newPin.length !== 4 || isNaN(newPin)) return alert("Enter valid values.");
+  const { error } = await supabase
+    .from("users")
+    .update({ name: newName, pin: newPin })
+    .ilike("name", user);
+  if (error) return alert("Failed to update.");
+  localStorage.setItem("user", newName);
+  alert("Updated successfully!");
+}
+
+async function createUser() {
+  const name = document.getElementById("regName").value.trim();
+  const pin = document.getElementById("regPin").value.trim();
+  if (!name || pin.length !== 4 || isNaN(pin)) return alert("Enter valid name and 4-digit PIN.");
+
+  const { error } = await supabase
+    .from("users")
+    .insert([{ name, pin }]);
+
+  if (error) {
+    alert("Error creating user.");
+  } else {
+    alert("User created successfully!");
+    document.getElementById("regName").value = "";
+    document.getElementById("regPin").value = "";
+  }
+}
+
+function goBack() {
+  location.href = "app.html";
+}
+</script>
 </body>
 </html>
