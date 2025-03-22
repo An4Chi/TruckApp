@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,9 +21,13 @@
   <h1>Truck Net Calculator</h1>
   <button onclick="location.href='account.html'">Account</button>
   <div id="welcome"></div>
-  <input id="fromInput" placeholder="From" />
-  <input id="toInput" placeholder="To" />
-  <button onclick="calculateMiles()">Calculate Distance</button>
+
+  <input id="fromInput" placeholder="From" list="fromInput-list" />
+  <datalist id="fromInput-list"></datalist>
+  <input id="toInput" placeholder="To" list="toInput-list" />
+  <datalist id="toInput-list"></datalist>
+
+  <button onclick="calculateDistance()">Calculate Distance</button>
   <input id="miles" placeholder="Miles" readonly />
   <input id="rate" placeholder="Load Rate ($)" />
   <input id="fuelPrice" placeholder="Fuel Price ($/gal)" value="3.85" />
@@ -34,6 +39,7 @@
   <table id="loadTable"><thead>
     <tr><th>From</th><th>To</th><th>Miles</th><th>Rate</th><th>Net</th><th>$ / mi</th><th>Delete</th></tr>
   </thead><tbody></tbody></table>
+
 <script>
 const supabase = window.supabase.createClient(
   "https://xnhvmzwnmnymchbfnkge.supabase.co",
@@ -43,13 +49,55 @@ const user = localStorage.getItem("user");
 if (!user) location.href = "index.html";
 document.getElementById("welcome").innerText = "Welcome, " + user;
 
-async function calculateMiles() {
+// debounce function
+function debounce(func, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+function setupAutocomplete(inputId) {
+  const input = document.getElementById(inputId);
+  const datalist = document.getElementById(inputId + "-list");
+  const fetchSuggestions = debounce(async () => {
+    const query = input.value.trim();
+    if (query.length < 2) return;
+    const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    datalist.innerHTML = "";
+    data.slice(0, 3).forEach(item => {
+      const option = document.createElement("option");
+      option.value = item.display_name;
+      datalist.appendChild(option);
+    });
+  }, 500);
+  input.addEventListener("input", fetchSuggestions);
+}
+setupAutocomplete("fromInput");
+setupAutocomplete("toInput");
+
+async function getCoordinates(location) {
+  const url = `https://nominatim.openstreetmap.org/search?countrycodes=us&format=json&q=${encodeURIComponent(location)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return { lat: data[0].lat, lon: data[0].lon };
+}
+
+async function calculateDistance() {
   const from = document.getElementById("fromInput").value;
   const to = document.getElementById("toInput").value;
-  const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${from};${to}?overview=false`);
+  if (!from || !to) return;
+  const fromCoord = await getCoordinates(from);
+  const toCoord = await getCoordinates(to);
+  const url = `https://router.project-osrm.org/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`;
+  const res = await fetch(url);
   const data = await res.json();
   const meters = data.routes?.[0]?.distance || 0;
-  document.getElementById("miles").value = (meters / 1609.34).toFixed(1);
+  const miles = meters / 1609.34;
+  document.getElementById("miles").value = miles.toFixed(1);
 }
 
 function calculate() {
