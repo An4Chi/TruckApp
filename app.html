@@ -10,37 +10,46 @@
       background: #1e1e1e;
       color: #fff;
       font-family: sans-serif;
-      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
       margin: auto;
-      padding: 16px;
+      padding: 20px;
       position: relative;
     }
-    h1 {
-      text-align: center;
-      font-size: 24px;
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 20px;
     }
-    .top-button {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      padding: 8px 14px;
+    h1 {
+      font-size: 22px;
+      margin: 0;
+    }
+    .account-btn {
+      padding: 8px 12px;
       font-size: 14px;
-      border-radius: 4px;
       background-color: #4caf50;
-      color: white;
       border: none;
+      border-radius: 4px;
       cursor: pointer;
+      color: white;
     }
     input, button {
       width: 100%;
-      padding: 14px;
-      margin-top: 12px;
-      font-size: 18px;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
       border-radius: 5px;
       border: none;
       background-color: #2c2c2c;
       color: #fff;
+    }
+    button {
+      background-color: #4caf50;
     }
     button:hover {
       background-color: #45a049;
@@ -51,18 +60,13 @@
       background-color: #2c2c2c;
       border-radius: 5px;
     }
-    #netTotal {
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 20px;
-      text-align: right;
-    }
     table {
       width: 100%;
       overflow-x: auto;
       display: block;
       font-size: 14px;
       margin-top: 20px;
+      border-collapse: collapse;
     }
     th, td {
       border: 1px solid #444;
@@ -70,46 +74,53 @@
       text-align: center;
       white-space: nowrap;
     }
-    #welcome {
-      margin-bottom: 20px;
+    #netTotal {
+      font-size: 18px;
       font-weight: bold;
+      margin-top: 20px;
+      text-align: right;
+    }
+    #welcome {
       text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
     }
     .version {
       text-align: center;
-      margin-top: 40px;
+      margin-top: 30px;
       font-size: 12px;
       color: #999;
     }
   </style>
 </head>
 <body>
-  <button class="top-button" onclick="location.href='account.html'">Account</button>
-  <h1>Truck Net Calculator</h1>
-  <div id="welcome"></div>
+  <div class="container">
+    <div class="header">
+      <h1>Truck Net Calculator</h1>
+      <button class="account-btn" onclick="location.href='account.html'">Account</button>
+    </div>
+    <div id="welcome"></div>
 
-  <!-- Форма -->
-  <input id="fromInput" placeholder="From" list="fromInput-list" />
-  <datalist id="fromInput-list"></datalist>
-  <input id="toInput" placeholder="To" list="toInput-list" />
-  <datalist id="toInput-list"></datalist>
+    <input id="fromInput" placeholder="From" list="fromInput-list" />
+    <datalist id="fromInput-list"></datalist>
+    <input id="toInput" placeholder="To" list="toInput-list" />
+    <datalist id="toInput-list"></datalist>
 
-  <button onclick="calculateDistance()">Calculate Distance</button>
-  <input id="miles" placeholder="Miles" readonly />
-  <input id="rate" placeholder="Load Rate ($)" />
-  <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
-  <input id="expenses" placeholder="Other Expenses ($)" />
-  <button onclick="calculate()">Calculate Profit</button>
-  <div id="result"></div>
-  <button id="saveBtn" onclick="saveLoad()">Save Load</button>
-  <div id="netTotal"></div>
+    <button onclick="calculateDistance()">Calculate Distance</button>
+    <input id="miles" placeholder="Miles" readonly />
+    <input id="rate" placeholder="Load Rate ($)" />
+    <input id="fuelPrice" placeholder="Fuel Price ($/gal)" />
+    <input id="expenses" placeholder="Other Expenses ($)" />
+    <button onclick="calculate()">Calculate Profit</button>
+    <div id="result"></div>
+    <button onclick="saveLoad()">Save Load</button>
+    <div id="netTotal"></div>
+    <table id="loadTable"><thead>
+      <tr><th>From</th><th>To</th><th>Miles</th><th>Rate</th><th>Net</th><th>$ / mi</th><th>Delete</th></tr>
+    </thead><tbody></tbody></table>
 
-  <!-- Таблица -->
-  <table id="loadTable"><thead>
-    <tr><th>From</th><th>To</th><th>Miles</th><th>Rate</th><th>Net</th><th>$ / mi</th><th>Delete</th></tr>
-  </thead><tbody></tbody></table>
-
-  <div class="version">v1.2.0</div>
+    <div class="version">v1.2.0</div>
+  </div>
 
 <script>
 const supabase = window.supabase.createClient(
